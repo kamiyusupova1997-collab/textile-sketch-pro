@@ -10,6 +10,7 @@ import Canvas from "@/components/editor/Canvas";
 import ToolPanel from "@/components/editor/ToolPanel";
 import EstimatePanel from "@/components/editor/EstimatePanel";
 import WallProperties from "@/components/editor/WallProperties";
+import WallEditDialog from "@/components/editor/WallEditDialog";
 
 type Project = {
   id: string;
@@ -192,21 +193,25 @@ export default function Editor() {
           <div className="border-b bg-card p-2">
             <div className="flex gap-2 overflow-x-auto">
               {walls.map((wall) => (
-                <Button
-                  key={wall.id}
-                  variant={selectedWall?.id === wall.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedWall(wall)}
-                >
-                  {wall.name}
-                </Button>
+                <div key={wall.id} className="flex items-center gap-1">
+                  <Button
+                    variant={selectedWall?.id === wall.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedWall(wall)}
+                  >
+                    {wall.name}
+                  </Button>
+                  {selectedWall?.id === wall.id && (
+                    <WallEditDialog wall={wall} onUpdate={loadProject} />
+                  )}
+                </div>
               ))}
             </div>
           </div>
 
           {/* Canvas */}
           <div className="flex-1 overflow-auto p-4">
-            {selectedWall ? (
+            {selectedWall && selectedWall.length_m > 0 && selectedWall.height_m > 0 ? (
               <Canvas
                 wallLength={selectedWall.length_m}
                 wallHeight={selectedWall.height_m}
@@ -214,8 +219,15 @@ export default function Editor() {
                 onElementsChange={handleElementsChange}
               />
             ) : (
-              <Card className="p-8 text-center text-muted-foreground">
-                Выберите стену для редактирования
+              <Card className="p-8 text-center">
+                <p className="text-muted-foreground mb-4">
+                  {selectedWall 
+                    ? "Укажите размеры стены для начала работы" 
+                    : "Выберите стену для редактирования"}
+                </p>
+                {selectedWall && (
+                  <WallEditDialog wall={selectedWall} onUpdate={loadProject} />
+                )}
               </Card>
             )}
           </div>
