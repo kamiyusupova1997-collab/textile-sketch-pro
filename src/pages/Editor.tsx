@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import Canvas from "@/components/editor/Canvas";
+import ToolPanel from "@/components/editor/ToolPanel";
 
 type Project = {
   id: string;
@@ -25,6 +27,17 @@ type Wall = {
   length_m: number;
   height_m: number;
   area_m2: number;
+  canvas_data: any;
+};
+
+type CanvasElement = {
+  id: string;
+  type: "line" | "area" | "circle" | "double-circle" | "square" | "large-square" | "thick-line" | "dashed-line";
+  toolOptionId: string;
+  toolName: string;
+  points: { x: number; y: number }[];
+  length?: number;
+  area?: number;
 };
 
 export default function Editor() {
@@ -35,6 +48,12 @@ export default function Editor() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [walls, setWalls] = useState<Wall[]>([]);
   const [selectedWall, setSelectedWall] = useState<Wall | null>(null);
+  const [currentTool, setCurrentTool] = useState<{
+    id: string;
+    name: string;
+    type: "line" | "area" | "circle" | "double-circle" | "square" | "large-square" | "thick-line" | "dashed-line";
+  } | null>(null);
+  const [canvasElements, setCanvasElements] = useState<CanvasElement[]>([]);
 
   useEffect(() => {
     loadProject();
@@ -45,6 +64,14 @@ export default function Editor() {
       loadWalls(selectedRoom.id);
     }
   }, [selectedRoom]);
+
+  useEffect(() => {
+    if (selectedWall?.canvas_data) {
+      setCanvasElements(selectedWall.canvas_data);
+    } else {
+      setCanvasElements([]);
+    }
+  }, [selectedWall]);
 
   const loadProject = async () => {
     if (!id) return;
@@ -98,6 +125,26 @@ export default function Editor() {
     }
   };
 
+  const handleSave = async () => {
+    if (!selectedWall) return;
+
+    const { error } = await supabase
+      .from("walls")
+      .update({ canvas_data: canvasElements })
+      .eq("id", selectedWall.id);
+
+    if (error) {
+      toast.error("Ошибка сохранения");
+      return;
+    }
+
+    toast.success("Изменения сохранены");
+  };
+
+  const handleElementsChange = (elements: CanvasElement[]) => {
+    setCanvasElements(elements);
+  };
+
   if (!project) {
     return <div className="p-4">Загрузка...</div>;
   }
@@ -116,7 +163,7 @@ export default function Editor() {
               <p className="text-sm text-muted-foreground">{project.address}</p>
             </div>
           </div>
-          <Button>Сохранить</Button>
+          <Button onClick={handleSave}>Сохранить</Button>
         </div>
       </div>
 
@@ -157,21 +204,18 @@ export default function Editor() {
 
           {/* Canvas */}
           <div className="flex-1 overflow-auto p-4">
-            <div className="canvas-grid w-full h-[800px] border rounded-lg relative">
-              {selectedWall && (
-                <div className="absolute top-4 left-4 bg-background/90 p-4 rounded-lg shadow-md">
-                  <h3 className="font-semibold mb-2">{selectedWall.name}</h3>
-                  <div className="text-sm space-y-1">
-                    <p>Длина: {selectedWall.length_m} м</p>
-                    <p>Высота: {selectedWall.height_m} м</p>
-                    <p>Площадь: {selectedWall.area_m2?.toFixed(2)} м²</p>
-                  </div>
-                </div>
-              )}
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                Холст для рисования
-              </div>
-            </div>
+            {selectedWall ? (
+              <Canvas
+                wallLength={selectedWall.length_m}
+                wallHeight={selectedWall.height_m}
+                currentTool={currentTool}
+                onElementsChange={handleElementsChange}
+              />
+            ) : (
+              <Card className="p-8 text-center text-muted-foreground">
+                Выберите стену для редактирования
+              </Card>
+            )}
           </div>
         </div>
 
@@ -184,27 +228,19 @@ export default function Editor() {
               <TabsTrigger value="estimate">Смета</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="tools" className="flex-1 overflow-auto p-4">
-              <Card className="p-4">
-                <h3 className="font-semibold mb-4">Категории инструментов</h3>
-                <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start">
-                    Профиль
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    Ткань
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    Мембрана
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    Светильник
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    Закладная
-                  </Button>
-                </div>
-              </Card>
+            <TabsContent value="tools" className="flex-1 overflow-auto">
+              {selectedWall ? (
+                <ToolPanel
+                  wallHeight={selectedWall.height_m}
+                  onToolSelect={setCurrentTool}
+                />
+              ) : (
+                <Card className="m-4 p-4">
+                  <p className="text-sm text-muted-foreground">
+                    Выберите стену для начала работы
+                  </p>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="wall" className="flex-1 overflow-auto p-4">
