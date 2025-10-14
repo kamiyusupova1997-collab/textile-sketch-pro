@@ -8,9 +8,6 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Canvas from "@/components/editor/Canvas";
 import ToolPanel from "@/components/editor/ToolPanel";
-import EstimatePanel from "@/components/editor/EstimatePanel";
-import WallProperties from "@/components/editor/WallProperties";
-import WallEditDialog from "@/components/editor/WallEditDialog";
 
 type Project = {
   id: string;
@@ -193,25 +190,21 @@ export default function Editor() {
           <div className="border-b bg-card p-2">
             <div className="flex gap-2 overflow-x-auto">
               {walls.map((wall) => (
-                <div key={wall.id} className="flex items-center gap-1">
-                  <Button
-                    variant={selectedWall?.id === wall.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedWall(wall)}
-                  >
-                    {wall.name}
-                  </Button>
-                  {selectedWall?.id === wall.id && (
-                    <WallEditDialog wall={wall} onUpdate={loadProject} />
-                  )}
-                </div>
+                <Button
+                  key={wall.id}
+                  variant={selectedWall?.id === wall.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedWall(wall)}
+                >
+                  {wall.name}
+                </Button>
               ))}
             </div>
           </div>
 
           {/* Canvas */}
           <div className="flex-1 overflow-auto p-4">
-            {selectedWall && selectedWall.length_m > 0 && selectedWall.height_m > 0 ? (
+            {selectedWall ? (
               <Canvas
                 wallLength={selectedWall.length_m}
                 wallHeight={selectedWall.height_m}
@@ -219,15 +212,8 @@ export default function Editor() {
                 onElementsChange={handleElementsChange}
               />
             ) : (
-              <Card className="p-8 text-center">
-                <p className="text-muted-foreground mb-4">
-                  {selectedWall 
-                    ? "Укажите размеры стены для начала работы" 
-                    : "Выберите стену для редактирования"}
-                </p>
-                {selectedWall && (
-                  <WallEditDialog wall={selectedWall} onUpdate={loadProject} />
-                )}
+              <Card className="p-8 text-center text-muted-foreground">
+                Выберите стену для редактирования
               </Card>
             )}
           </div>
@@ -257,36 +243,27 @@ export default function Editor() {
               )}
             </TabsContent>
 
-            <TabsContent value="wall" className="flex-1 overflow-hidden">
-              {selectedWall ? (
-                <WallProperties
-                  wall={selectedWall}
-                  elements={canvasElements}
-                />
-              ) : (
-                <Card className="m-4 p-4">
-                  <p className="text-sm text-muted-foreground">
-                    Выберите стену для просмотра свойств
-                  </p>
-                </Card>
-              )}
+            <TabsContent value="wall" className="flex-1 overflow-auto p-4">
+              <Card className="p-4">
+                <h3 className="font-semibold mb-4">Свойства стены</h3>
+                {selectedWall && (
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Название:</strong> {selectedWall.name}</p>
+                    <p><strong>Длина:</strong> {selectedWall.length_m} м</p>
+                    <p><strong>Высота:</strong> {selectedWall.height_m} м</p>
+                    <p><strong>Площадь:</strong> {selectedWall.area_m2?.toFixed(2)} м²</p>
+                  </div>
+                )}
+              </Card>
             </TabsContent>
 
-            <TabsContent value="estimate" className="flex-1 overflow-hidden">
-              {selectedWall ? (
-                <EstimatePanel
-                  wallId={selectedWall.id}
-                  wallLength={selectedWall.length_m}
-                  wallHeight={selectedWall.height_m}
-                  elements={canvasElements}
-                />
-              ) : (
-                <Card className="m-4 p-4">
-                  <p className="text-sm text-muted-foreground">
-                    Выберите стену для просмотра сметы
-                  </p>
-                </Card>
-              )}
+            <TabsContent value="estimate" className="flex-1 overflow-auto p-4">
+              <Card className="p-4">
+                <h3 className="font-semibold mb-4">Смета проекта</h3>
+                <p className="text-sm text-muted-foreground">
+                  Смета будет формироваться по мере добавления элементов на чертеж
+                </p>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
