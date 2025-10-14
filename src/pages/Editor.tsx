@@ -8,6 +8,8 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Canvas from "@/components/editor/Canvas";
 import ToolPanel from "@/components/editor/ToolPanel";
+import EstimatePanel from "@/components/editor/EstimatePanel";
+import WallProperties from "@/components/editor/WallProperties";
 
 type Project = {
   id: string;
@@ -243,27 +245,36 @@ export default function Editor() {
               )}
             </TabsContent>
 
-            <TabsContent value="wall" className="flex-1 overflow-auto p-4">
-              <Card className="p-4">
-                <h3 className="font-semibold mb-4">Свойства стены</h3>
-                {selectedWall && (
-                  <div className="space-y-2 text-sm">
-                    <p><strong>Название:</strong> {selectedWall.name}</p>
-                    <p><strong>Длина:</strong> {selectedWall.length_m} м</p>
-                    <p><strong>Высота:</strong> {selectedWall.height_m} м</p>
-                    <p><strong>Площадь:</strong> {selectedWall.area_m2?.toFixed(2)} м²</p>
-                  </div>
-                )}
-              </Card>
+            <TabsContent value="wall" className="flex-1 overflow-hidden">
+              {selectedWall ? (
+                <WallProperties
+                  wall={selectedWall}
+                  elements={canvasElements}
+                />
+              ) : (
+                <Card className="m-4 p-4">
+                  <p className="text-sm text-muted-foreground">
+                    Выберите стену для просмотра свойств
+                  </p>
+                </Card>
+              )}
             </TabsContent>
 
-            <TabsContent value="estimate" className="flex-1 overflow-auto p-4">
-              <Card className="p-4">
-                <h3 className="font-semibold mb-4">Смета проекта</h3>
-                <p className="text-sm text-muted-foreground">
-                  Смета будет формироваться по мере добавления элементов на чертеж
-                </p>
-              </Card>
+            <TabsContent value="estimate" className="flex-1 overflow-hidden">
+              {selectedWall ? (
+                <EstimatePanel
+                  wallId={selectedWall.id}
+                  wallLength={selectedWall.length_m}
+                  wallHeight={selectedWall.height_m}
+                  elements={canvasElements}
+                />
+              ) : (
+                <Card className="m-4 p-4">
+                  <p className="text-sm text-muted-foreground">
+                    Выберите стену для просмотра сметы
+                  </p>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         </div>
