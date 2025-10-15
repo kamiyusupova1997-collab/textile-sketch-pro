@@ -85,8 +85,20 @@ export default function EstimatePanel({ wallId, elements }: EstimatePanelProps) 
         const effectiveWidth = (tool.roll_width_m || 1) - 0.15;
         quantity = area / effectiveWidth;
       } else if (tool.category_id === "mounting_plate") {
-        // Mounting plates: count pieces
+        // Mounting plates: 
+        // - For lines (Потолок, Плинтус): use length
+        // - For points (Рондо, Мини, Стандарт): count pieces
+        if (tool.unit === "м") {
+          quantity = element.length || 0;
+        } else {
+          quantity = 1; // Count each element as 1 piece
+        }
+      } else if (tool.category_id === "light") {
+        // Lights: count pieces (circles)
         quantity = 1;
+      } else if (tool.category_id === "membrane") {
+        // Membrane: use area
+        quantity = element.area || 0;
       } else {
         // Default: use length or area
         quantity = element.length || element.area || 1;

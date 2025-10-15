@@ -11,6 +11,7 @@ import ToolPanel from "@/components/editor/ToolPanel";
 import EstimatePanel from "@/components/editor/EstimatePanel";
 import WallProperties from "@/components/editor/WallProperties";
 import WallEditDialog from "@/components/editor/WallEditDialog";
+import PerimeterCalculator from "@/components/editor/PerimeterCalculator";
 
 type Project = {
   id: string;
@@ -148,6 +149,27 @@ export default function Editor() {
     setCanvasElements(elements);
   };
 
+  const handleCalculateDimensions = async (length: number, height: number) => {
+    if (!selectedWall) return;
+
+    const { error } = await supabase
+      .from("walls")
+      .update({
+        length_m: length,
+        height_m: height,
+        area_m2: length * height,
+      })
+      .eq("id", selectedWall.id);
+
+    if (error) {
+      toast.error("Ошибка обновления размеров");
+      return;
+    }
+
+    toast.success(`Размеры стены обновлены: ${length}м × ${height}м`);
+    loadProject();
+  };
+
   if (!project) {
     return <div className="p-4">Загрузка...</div>;
   }
@@ -211,20 +233,34 @@ export default function Editor() {
 
           {/* Canvas */}
           <div className="flex-1 overflow-auto p-4">
-            {selectedWall && selectedWall.length_m > 0 && selectedWall.height_m > 0 ? (
-              <Canvas
-                wallLength={selectedWall.length_m}
-                wallHeight={selectedWall.height_m}
-                currentTool={currentTool}
-                onElementsChange={handleElementsChange}
-              />
-            ) : selectedWall ? (
-              <Card className="p-8 text-center">
-                <p className="text-muted-foreground mb-4">
-                  Укажите размеры стены для начала работы
-                </p>
-                <WallEditDialog wall={selectedWall} onUpdate={loadProject} />
-              </Card>
+            {selectedWall ? (
+              <div className="space-y-4">
+                {selectedWall.length_m === 0 || selectedWall.height_m === 0 ? (
+                  <>
+                    <Card className="p-4 bg-blue-50 border-blue-200">
+                      <p className="text-sm text-blue-900 mb-2">
+                        <strong>Инструкция:</strong>
+                      </p>
+                      <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                        <li>Выберите профиль из панели инструментов справа</li>
+                        <li>Нарисуйте периметр стены на холсте</li>
+                        <li>Нажмите "Рассчитать" для определения размеров</li>
+                        <li>После расчета можно добавлять другие элементы</li>
+                      </ol>
+                    </Card>
+                    <PerimeterCalculator
+                      elements={canvasElements}
+                      onCalculate={handleCalculateDimensions}
+                    />
+                  </>
+                ) : null}
+                <Canvas
+                  wallLength={selectedWall.length_m}
+                  wallHeight={selectedWall.height_m}
+                  currentTool={currentTool}
+                  onElementsChange={handleElementsChange}
+                />
+              </div>
             ) : (
               <Card className="p-8 text-center text-muted-foreground">
                 Выберите стену для редактирования

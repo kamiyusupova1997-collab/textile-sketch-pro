@@ -116,7 +116,7 @@ export default function Admin() {
       fabric: "Ткань",
       membrane: "Мембрана",
       light: "Светильник",
-      embed: "Закладная"
+      mounting_plate: "Закладная"
     };
     return names[id] || id;
   };
@@ -234,12 +234,12 @@ function ToolForm({
     tool || {
       category_id: "profile",
       name: "",
-      unit: "m",
+      unit: "м",
       default_material_price: 0,
       default_labor_price: 0,
       size_label: "",
       default_colors: 0,
-      calc_strategy: "length",
+      calc_strategy: "linear",
       is_active: true
     }
   );
@@ -266,7 +266,7 @@ function ToolForm({
               <SelectItem value="fabric">Ткань</SelectItem>
               <SelectItem value="membrane">Мембрана</SelectItem>
               <SelectItem value="light">Светильник</SelectItem>
-              <SelectItem value="embed">Закладная</SelectItem>
+              <SelectItem value="mounting_plate">Закладная</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -290,9 +290,9 @@ function ToolForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="m">м (метры)</SelectItem>
-              <SelectItem value="m2">м² (квадратные метры)</SelectItem>
-              <SelectItem value="pcs">шт (штуки)</SelectItem>
+              <SelectItem value="м">м (метры)</SelectItem>
+              <SelectItem value="м²">м² (квадратные метры)</SelectItem>
+              <SelectItem value="шт">шт (штуки)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -307,7 +307,7 @@ function ToolForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="length">Длина</SelectItem>
+              <SelectItem value="linear">Длина</SelectItem>
               <SelectItem value="area">Площадь</SelectItem>
               <SelectItem value="count">Количество</SelectItem>
             </SelectContent>
