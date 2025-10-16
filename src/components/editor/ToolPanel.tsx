@@ -24,6 +24,7 @@ type ToolPanelProps = {
     id: string;
     name: string;
     type: "line" | "area" | "circle" | "double-circle" | "square" | "large-square" | "thick-line" | "dashed-line";
+    category: string;
   } | null) => void;
 };
 
@@ -108,6 +109,7 @@ export default function ToolPanel({ wallHeight, onToolSelect }: ToolPanelProps) 
       id: tool.id,
       name: tool.name,
       type,
+      category: tool.category_id,
     });
   };
 

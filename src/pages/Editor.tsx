@@ -56,6 +56,7 @@ export default function Editor() {
     id: string;
     name: string;
     type: "line" | "area" | "circle" | "double-circle" | "square" | "large-square" | "thick-line" | "dashed-line";
+    category: string;
   } | null>(null);
   const [canvasElements, setCanvasElements] = useState<CanvasElement[]>([]);
 
