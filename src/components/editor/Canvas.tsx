@@ -135,11 +135,13 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
         };
         setElements(prev => [...prev, element]);
         (obj as any).elementId = element.id;
+        fabricCanvasRef.current.renderAll();
       }
     } else {
       // Для линий и прямоугольников - начинаем рисование
       isDrawingRef.current = true;
       fabricCanvasRef.current.selection = false;
+      fabricCanvasRef.current.renderAll();
     }
   };
 
@@ -212,7 +214,7 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
       const line = new Line([x1, y1, x2, y2], {
         stroke: color,
         strokeWidth: 3,
-        selectable: false,
+        selectable: true,
       });
 
       const midX = (x1 + x2) / 2;
@@ -227,7 +229,7 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
       });
 
       const group = new Group([line, text], {
-        selectable: false,
+        selectable: true,
       });
 
       return group;
@@ -243,7 +245,7 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
         fill: `${color}33`,
         stroke: color,
         strokeWidth: 2,
-        selectable: false,
+        selectable: true,
       });
 
       const width = Math.abs(dx) / SCALE;
@@ -263,7 +265,7 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
       });
 
       const group = new Group([rect, text], {
-        selectable: false,
+        selectable: true,
       });
 
       return group;
@@ -280,7 +282,7 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
         stroke: color,
         strokeWidth: tool.type === "thick-line" ? 4 : 2,
         strokeDashArray: tool.type === "dashed-line" ? [5, 5] : undefined,
-        selectable: false,
+        selectable: true,
       });
 
       const length = Math.abs(dx) / SCALE;
@@ -299,7 +301,7 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
       });
 
       const group = new Group([rect, text], {
-        selectable: false,
+        selectable: true,
       });
 
       return group;
@@ -405,9 +407,8 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
     <Card className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-semibold">
-          {wallLength > 0 && wallHeight > 0 
-            ? `Чертеж (${wallLength}м × ${wallHeight}м)`
-            : "Чертеж (нарисуйте периметр)"}
+          Чертеж
+          {wallLength > 0 && wallHeight > 0 && ` (стена: ${wallLength}м × ${wallHeight}м)`}
         </h3>
         <div className="flex gap-2">
           <Button
