@@ -109,18 +109,19 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
     }
   };
 
+  const isPointTool = (tool: any): boolean => {
+    return tool.category === "light" || 
+           (tool.category === "mounting_plate" && 
+            ["circle", "double-circle", "square", "large-square"].includes(tool.type));
+  };
+
   const handleMouseDown = (event: any) => {
     if (!currentTool || !fabricCanvasRef.current) return;
 
     const pointer = fabricCanvasRef.current.getPointer(event.e);
     startPointRef.current = { x: pointer.x, y: pointer.y };
 
-    const category = currentTool.category;
-    const isDraggable = 
-      (category === "light") || 
-      (category === "mounting_plate" && (currentTool.type === "circle" || currentTool.type === "double-circle" || currentTool.type === "square" || currentTool.type === "large-square"));
-
-    if (isDraggable) {
+    if (isPointTool(currentTool)) {
       // Создаем перетаскиваемый объект сразу
       const obj = createFabricObject(currentTool, pointer.x, pointer.y, pointer.x, pointer.y);
       if (obj) {
@@ -141,7 +142,6 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
       // Для линий и прямоугольников - начинаем рисование
       isDrawingRef.current = true;
       fabricCanvasRef.current.selection = false;
-      fabricCanvasRef.current.renderAll();
     }
   };
 
@@ -209,8 +209,8 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
     const dy = y2 - y1;
     const length = Math.sqrt(dx * dx + dy * dy) / SCALE;
 
-    if (tool.type === "line" || tool.category === "profile") {
-      // Профили - прямая линия с размером
+    // Профили - черные прямые линии с размером
+    if (tool.category === "profile") {
       const line = new Line([x1, y1, x2, y2], {
         stroke: color,
         strokeWidth: 3,
@@ -235,8 +235,8 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
       return group;
     }
 
-    if (tool.type === "area" || tool.category === "fabric" || tool.category === "membrane") {
-      // Ткань и мембрана - прямоугольник с размерами
+    // Ткань - голубой прямоугольник с размерами
+    if (tool.category === "fabric") {
       const rect = new Rect({
         left: Math.min(x1, x2),
         top: Math.min(y1, y2),
@@ -271,8 +271,8 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
       return group;
     }
 
-    if (tool.type === "thick-line" || tool.type === "dashed-line") {
-      // Закладные Потолок и Плинтус - линии с размером
+    // Мембрана - оранжевый прямоугольник с размерами
+    if (tool.category === "membrane") {
       const rect = new Rect({
         left: Math.min(x1, x2),
         top: Math.min(y1, y2),
@@ -280,18 +280,18 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
         height: Math.abs(dy),
         fill: `${color}33`,
         stroke: color,
-        strokeWidth: tool.type === "thick-line" ? 4 : 2,
-        strokeDashArray: tool.type === "dashed-line" ? [5, 5] : undefined,
+        strokeWidth: 2,
         selectable: true,
       });
 
-      const length = Math.abs(dx) / SCALE;
-      const midX = (x1 + x2) / 2;
-      const midY = (y1 + y2) / 2;
+      const width = Math.abs(dx) / SCALE;
+      const height = Math.abs(dy) / SCALE;
+      const centerX = (x1 + x2) / 2;
+      const centerY = (y1 + y2) / 2;
 
-      const text = new FabricText(`${length.toFixed(2)}м`, {
-        left: midX,
-        top: midY,
+      const text = new FabricText(`${width.toFixed(2)}м × ${height.toFixed(2)}м`, {
+        left: centerX,
+        top: centerY,
         fontSize: 14,
         fill: color,
         selectable: false,
@@ -307,8 +307,45 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
       return group;
     }
 
-    if (tool.type === "circle") {
-      // Светильники
+    // Закладные Плинтус и Потолок - красные прямоугольники с размерами
+    if (tool.type === "thick-line" || tool.type === "dashed-line") {
+      const rect = new Rect({
+        left: Math.min(x1, x2),
+        top: Math.min(y1, y2),
+        width: Math.abs(dx),
+        height: Math.abs(dy),
+        fill: `${color}33`,
+        stroke: color,
+        strokeWidth: tool.type === "thick-line" ? 4 : 2,
+        strokeDashArray: tool.type === "dashed-line" ? [5, 5] : undefined,
+        selectable: true,
+      });
+
+      const width = Math.abs(dx) / SCALE;
+      const height = Math.abs(dy) / SCALE;
+      const centerX = (x1 + x2) / 2;
+      const centerY = (y1 + y2) / 2;
+
+      const text = new FabricText(`${width.toFixed(2)}м × ${height.toFixed(2)}м`, {
+        left: centerX,
+        top: centerY,
+        fontSize: 14,
+        fill: color,
+        selectable: false,
+        backgroundColor: "white",
+        originX: "center",
+        originY: "center",
+      });
+
+      const group = new Group([rect, text], {
+        selectable: true,
+      });
+
+      return group;
+    }
+
+    // Светильники - зеленые круги (перетаскиваемые)
+    if (tool.type === "circle" && tool.category === "light") {
       const circle = new Circle({
         left: x1 - 15,
         top: y1 - 15,
@@ -321,8 +358,8 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
       return circle;
     }
 
+    // Закладная Рондо - красный двойной круг (перетаскиваемая)
     if (tool.type === "double-circle") {
-      // Закладная Рондо
       const circle1 = new Circle({
         left: -10,
         top: 0,
@@ -347,8 +384,8 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
       return group;
     }
 
+    // Закладная Мини - красный квадрат (перетаскиваемая)
     if (tool.type === "square") {
-      // Закладная Мини
       const rect = new Rect({
         left: x1 - 10,
         top: y1 - 10,
@@ -362,8 +399,8 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
       return rect;
     }
 
+    // Закладная Стандарт - красный большой квадрат (перетаскиваемая)
     if (tool.type === "large-square") {
-      // Закладная Стандарт
       const rect = new Rect({
         left: x1 - 15,
         top: y1 - 15,
@@ -436,8 +473,7 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
           Выбран инструмент: <strong>{currentTool.name}</strong>
           <br />
           <span className="text-xs">
-            {currentTool.category === "light" || 
-             (currentTool.category === "mounting_plate" && ["circle", "double-circle", "square", "large-square"].includes(currentTool.type))
+            {isPointTool(currentTool)
               ? "Кликните для размещения, затем перетащите при необходимости"
               : "Нажмите и тяните для рисования"}
           </span>
