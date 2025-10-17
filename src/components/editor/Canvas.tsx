@@ -37,6 +37,16 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
   const isDrawingRef = useRef(false);
   const startPointRef = useRef<{ x: number; y: number } | null>(null);
   const tempObjectRef = useRef<FabricObject | null>(null);
+  const currentToolRef = useRef(currentTool);
+
+  // Обновляем ref при изменении currentTool
+  useEffect(() => {
+    currentToolRef.current = currentTool;
+  }, [currentTool]);
+
+  useEffect(() => {
+    onElementsChange(elements);
+  }, [elements, onElementsChange]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -54,22 +64,103 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
     drawGrid(canvas);
 
     // Обработчики для рисования
-    canvas.on("mouse:down", handleMouseDown);
-    canvas.on("mouse:move", handleMouseMove);
-    canvas.on("mouse:up", handleMouseUp);
+    const onMouseDown = (event: any) => {
+      const tool = currentToolRef.current;
+      if (!tool || !canvas) return;
 
-    // Обработчик удаления
-    canvas.on("selection:created", () => canvas.renderAll());
-    canvas.on("selection:updated", () => canvas.renderAll());
+      const pointer = canvas.getPointer(event.e);
+      startPointRef.current = { x: pointer.x, y: pointer.y };
+
+      if (isPointTool(tool)) {
+        // Создаем перетаскиваемый объект сразу
+        const obj = createFabricObject(tool, pointer.x, pointer.y, pointer.x, pointer.y);
+        if (obj) {
+          canvas.add(obj);
+          canvas.setActiveObject(obj);
+          const element: CanvasElement = {
+            id: Date.now().toString(),
+            type: tool.type,
+            toolOptionId: tool.id,
+            toolName: tool.name,
+            points: [{ x: pointer.x, y: pointer.y }],
+          };
+          setElements(prev => [...prev, element]);
+          (obj as any).elementId = element.id;
+          canvas.renderAll();
+        }
+      } else {
+        // Для линий и прямоугольников - начинаем рисование
+        isDrawingRef.current = true;
+        canvas.selection = false;
+      }
+    };
+
+    const onMouseMove = (event: any) => {
+      if (!isDrawingRef.current || !startPointRef.current || !currentToolRef.current || !canvas) return;
+
+      const pointer = canvas.getPointer(event.e);
+
+      // Удаляем временный объект
+      if (tempObjectRef.current) {
+        canvas.remove(tempObjectRef.current);
+        tempObjectRef.current = null;
+      }
+
+      // Создаем новый временный объект
+      const obj = createFabricObject(currentToolRef.current, startPointRef.current.x, startPointRef.current.y, pointer.x, pointer.y);
+      if (obj) {
+        tempObjectRef.current = obj;
+        canvas.add(obj);
+        canvas.renderAll();
+      }
+    };
+
+    const onMouseUp = (event: any) => {
+      if (!isDrawingRef.current || !startPointRef.current || !currentToolRef.current || !canvas) return;
+
+      const pointer = canvas.getPointer(event.e);
+
+      // Удаляем временный объект
+      if (tempObjectRef.current) {
+        canvas.remove(tempObjectRef.current);
+        tempObjectRef.current = null;
+      }
+
+      // Создаем финальный объект
+      const obj = createFabricObject(currentToolRef.current, startPointRef.current.x, startPointRef.current.y, pointer.x, pointer.y);
+      if (obj) {
+        canvas.add(obj);
+
+        const dx = pointer.x - startPointRef.current.x;
+        const dy = pointer.y - startPointRef.current.y;
+        const length = Math.sqrt(dx * dx + dy * dy) / SCALE;
+
+        const element: CanvasElement = {
+          id: Date.now().toString(),
+          type: currentToolRef.current.type,
+          toolOptionId: currentToolRef.current.id,
+          toolName: currentToolRef.current.name,
+          points: [startPointRef.current, { x: pointer.x, y: pointer.y }],
+          length,
+        };
+
+        setElements(prev => [...prev, element]);
+        (obj as any).elementId = element.id;
+      }
+
+      isDrawingRef.current = false;
+      startPointRef.current = null;
+      canvas.selection = true;
+    };
+
+    canvas.on("mouse:down", onMouseDown);
+    canvas.on("mouse:move", onMouseMove);
+    canvas.on("mouse:up", onMouseUp);
 
     return () => {
       canvas.dispose();
     };
   }, []);
-
-  useEffect(() => {
-    onElementsChange(elements);
-  }, [elements]);
 
   const drawGrid = (canvas: FabricCanvas) => {
     for (let x = 0; x <= CANVAS_WIDTH; x += SCALE) {
@@ -113,94 +204,6 @@ export default function Canvas({ wallLength, wallHeight, currentTool, onElements
     return tool.category === "light" || 
            (tool.category === "mounting_plate" && 
             ["circle", "double-circle", "square", "large-square"].includes(tool.type));
-  };
-
-  const handleMouseDown = (event: any) => {
-    if (!currentTool || !fabricCanvasRef.current) return;
-
-    const pointer = fabricCanvasRef.current.getPointer(event.e);
-    startPointRef.current = { x: pointer.x, y: pointer.y };
-
-    if (isPointTool(currentTool)) {
-      // Создаем перетаскиваемый объект сразу
-      const obj = createFabricObject(currentTool, pointer.x, pointer.y, pointer.x, pointer.y);
-      if (obj) {
-        fabricCanvasRef.current.add(obj);
-        fabricCanvasRef.current.setActiveObject(obj);
-        const element: CanvasElement = {
-          id: Date.now().toString(),
-          type: currentTool.type,
-          toolOptionId: currentTool.id,
-          toolName: currentTool.name,
-          points: [{ x: pointer.x, y: pointer.y }],
-        };
-        setElements(prev => [...prev, element]);
-        (obj as any).elementId = element.id;
-        fabricCanvasRef.current.renderAll();
-      }
-    } else {
-      // Для линий и прямоугольников - начинаем рисование
-      isDrawingRef.current = true;
-      fabricCanvasRef.current.selection = false;
-    }
-  };
-
-  const handleMouseMove = (event: any) => {
-    if (!isDrawingRef.current || !startPointRef.current || !currentTool || !fabricCanvasRef.current) return;
-
-    const pointer = fabricCanvasRef.current.getPointer(event.e);
-
-    // Удаляем временный объект
-    if (tempObjectRef.current) {
-      fabricCanvasRef.current.remove(tempObjectRef.current);
-      tempObjectRef.current = null;
-    }
-
-    // Создаем новый временный объект
-    const obj = createFabricObject(currentTool, startPointRef.current.x, startPointRef.current.y, pointer.x, pointer.y);
-    if (obj) {
-      tempObjectRef.current = obj;
-      fabricCanvasRef.current.add(obj);
-      fabricCanvasRef.current.renderAll();
-    }
-  };
-
-  const handleMouseUp = (event: any) => {
-    if (!isDrawingRef.current || !startPointRef.current || !currentTool || !fabricCanvasRef.current) return;
-
-    const pointer = fabricCanvasRef.current.getPointer(event.e);
-
-    // Удаляем временный объект
-    if (tempObjectRef.current) {
-      fabricCanvasRef.current.remove(tempObjectRef.current);
-      tempObjectRef.current = null;
-    }
-
-    // Создаем финальный объект
-    const obj = createFabricObject(currentTool, startPointRef.current.x, startPointRef.current.y, pointer.x, pointer.y);
-    if (obj) {
-      fabricCanvasRef.current.add(obj);
-
-      const dx = pointer.x - startPointRef.current.x;
-      const dy = pointer.y - startPointRef.current.y;
-      const length = Math.sqrt(dx * dx + dy * dy) / SCALE;
-
-      const element: CanvasElement = {
-        id: Date.now().toString(),
-        type: currentTool.type,
-        toolOptionId: currentTool.id,
-        toolName: currentTool.name,
-        points: [startPointRef.current, { x: pointer.x, y: pointer.y }],
-        length,
-      };
-
-      setElements(prev => [...prev, element]);
-      (obj as any).elementId = element.id;
-    }
-
-    isDrawingRef.current = false;
-    startPointRef.current = null;
-    fabricCanvasRef.current.selection = true;
   };
 
   const createFabricObject = (tool: any, x1: number, y1: number, x2: number, y2: number): FabricObject | null => {
